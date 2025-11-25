@@ -1,5 +1,5 @@
 module "apigee" {
-  source = "../../tf-gcp-blueprints/modulos/apigee"
+  source = "../../../tf-gcp-blueprints/modulos/apigee"
 
   project_id              = var.project_id
   apigee_org_display_name = var.apigee_org_display_name
