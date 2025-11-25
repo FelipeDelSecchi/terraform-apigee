@@ -1,5 +1,27 @@
 locals {
   apigee_org_display_name = coalesce(var.apigee_org_display_name, var.project_id)
+
+  # Mapa com todos os pares EnvGroup x Environment
+  # Exemplo:
+  # {
+  #   "dev-envgroup-dev" = { envgroup = "dev-envgroup", env = "dev" }
+  #   "hom-envgroup-hom" = { envgroup = "hom-envgroup", env = "hom" }
+  # }
+  apigee_envgroup_env_pairs = {
+    for pair in flatten([
+      for eg_name, eg in var.apigee_envgroups : [
+        for env_name in eg.environments : {
+          key      = "${eg_name}-${env_name}"
+          envgroup = eg_name
+          env      = env_name
+        }
+      ]
+    ]) :
+    pair.key => {
+      envgroup = pair.envgroup
+      env      = pair.env
+    }
+  }
 }
 
 # Organização do Apigee
@@ -46,16 +68,8 @@ resource "google_apigee_envgroup" "this" {
 
 # Anexar EnvGroups aos ambientes configurados
 resource "google_apigee_envgroup_attachment" "this" {
-  # Cria um attachment para cada par EnvGroup/Ambiente definido na variável apigee_envgroups
-  for_each = {
-    for eg_name, eg in var.apigee_envgroups :
-    # cria uma entrada por ambiente associado
-    for env_name in eg.environments :
-    "${eg_name}-${env_name}" => {
-      envgroup = eg_name
-      env      = env_name
-    }
-  }
+  # Um attachment para cada par EnvGroup x Ambiente definido em var.apigee_envgroups
+  for_each = local.apigee_envgroup_env_pairs
 
   envgroup_id = google_apigee_envgroup.this[each.value.envgroup].id
   environment = google_apigee_environment.this[each.value.env].name
