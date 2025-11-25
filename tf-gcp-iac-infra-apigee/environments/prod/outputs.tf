@@ -8,18 +8,18 @@ output "apigee_instance_name" {
   value       = module.apigee.apigee_instance_name
 }
 
-output "apigee_environment_name" {
-  description = "Nome do ambiente do Apigee criado."
-  value       = module.apigee.apigee_environment_name
+output "apigee_environment_names" {
+  description = "Lista de nomes dos ambientes do Apigee criados."
+  value       = module.apigee.apigee_environment_names
 }
 
-output "apigee_envgroup_name" {
-  description = "Nome do EnvGroup do Apigee criado."
-  value       = module.apigee.apigee_envgroup_name
+output "apigee_envgroup_names" {
+  description = "Lista de nomes dos EnvGroups do Apigee criados."
+  value       = module.apigee.apigee_envgroup_names
 }
 
 output "apigee_envgroup_hostnames" {
-  description = "Lista de hostnames configurados no EnvGroup."
+  description = "Mapa de EnvGroups e seus hostnames configurados."
   value       = module.apigee.apigee_envgroup_hostnames
 }
 

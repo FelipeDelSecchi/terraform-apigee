@@ -13,36 +13,52 @@ resource "google_apigee_organization" "this" {
 
 # Instância do Apigee
 resource "google_apigee_instance" "this" {
-  name     = "${var.apigee_environment_name}-instance"
+  name     = "apigee-instance"
   org_id   = google_apigee_organization.this.id
   location = var.apigee_runtime_location
 }
 
-# Ambiente do Apigee
+# Ambientes do Apigee (multi-env)
 resource "google_apigee_environment" "this" {
+  for_each = var.apigee_environments
+
   org_id       = google_apigee_organization.this.id
-  name         = var.apigee_environment_name
-  display_name = coalesce(var.apigee_environment_display_name, var.apigee_environment_name)
-  description  = var.apigee_environment_description
+  name         = each.key
+  display_name = coalesce(each.value.display_name, each.key)
+  description  = lookup(each.value, "description", null)
 }
 
-# Anexar ambiente à instância
+# Anexar ambientes à instância
 resource "google_apigee_instance_attachment" "this" {
+  for_each    = google_apigee_environment.this
   instance_id = google_apigee_instance.this.id
-  environment = google_apigee_environment.this.name
+  environment = each.value.name
 }
 
-# EnvGroup do Apigee
+# EnvGroups do Apigee (multi-envgroup)
 resource "google_apigee_envgroup" "this" {
+  for_each = var.apigee_envgroups
+
   org_id    = google_apigee_organization.this.id
-  name      = var.apigee_envgroup_name
-  hostnames = var.apigee_envgroup_hostnames
+  name      = each.key
+  hostnames = each.value.hostnames
 }
 
-# Anexar EnvGroup ao ambiente
+# Anexar EnvGroups aos ambientes configurados
 resource "google_apigee_envgroup_attachment" "this" {
-  envgroup_id = google_apigee_envgroup.this.id
-  environment = google_apigee_environment.this.name
+  # Cria um attachment para cada par EnvGroup/Ambiente definido na variável apigee_envgroups
+  for_each = {
+    for eg_name, eg in var.apigee_envgroups :
+    # cria uma entrada por ambiente associado
+    for env_name in eg.environments :
+    "${eg_name}-${env_name}" => {
+      envgroup = eg_name
+      env      = env_name
+    }
+  }
+
+  envgroup_id = google_apigee_envgroup.this[each.value.envgroup].id
+  environment = google_apigee_environment.this[each.value.env].name
 }
 
 ####################################
@@ -56,7 +72,11 @@ resource "google_compute_region_network_endpoint_group" "psc_neg" {
   network               = var.psc_neg_network
   subnetwork            = var.psc_neg_subnetwork
   network_endpoint_type = "PRIVATE_SERVICE_CONNECT"
-  psc_target_service    = var.psc_target_service
+
+  psc_target_service = coalesce(
+    var.psc_target_service,
+    google_apigee_instance.this.service_attachment
+  )
 
   lifecycle {
     create_before_destroy = true
@@ -64,12 +84,12 @@ resource "google_compute_region_network_endpoint_group" "psc_neg" {
 }
 
 resource "google_compute_backend_service" "apigee_psc_backend" {
-  count                = var.create_external_https_load_balancer ? 1 : 0
-  name                 = "${var.external_lb_name}-backend"
-  description          = "Backend service para expor o Apigee via Private Service Connect."
-  protocol             = "HTTPS"
-  port_name            = "https"
-  timeout_sec          = 30
+  count                 = var.create_external_https_load_balancer ? 1 : 0
+  name                  = "${var.external_lb_name}-backend"
+  description           = "Backend service para expor o Apigee via Private Service Connect."
+  protocol              = "HTTPS"
+  port_name             = "https"
+  timeout_sec           = 30
   load_balancing_scheme = "EXTERNAL_MANAGED"
 
   backend {

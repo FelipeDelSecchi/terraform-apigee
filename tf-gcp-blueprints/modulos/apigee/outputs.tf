@@ -8,19 +8,19 @@ output "apigee_instance_name" {
   value       = google_apigee_instance.this.name
 }
 
-output "apigee_environment_name" {
-  description = "Nome do ambiente do Apigee criado."
-  value       = google_apigee_environment.this.name
+output "apigee_environment_names" {
+  description = "Lista de nomes dos ambientes do Apigee criados."
+  value       = [for k, env in google_apigee_environment.this : env.name]
 }
 
-output "apigee_envgroup_name" {
-  description = "Nome do EnvGroup do Apigee criado."
-  value       = google_apigee_envgroup.this.name
+output "apigee_envgroup_names" {
+  description = "Lista de nomes dos EnvGroups do Apigee criados."
+  value       = [for k, eg in google_apigee_envgroup.this : eg.name]
 }
 
 output "apigee_envgroup_hostnames" {
-  description = "Lista de hostnames configurados no EnvGroup."
-  value       = google_apigee_envgroup.this.hostnames
+  description = "Mapa de EnvGroups e seus hostnames configurados."
+  value       = { for k, eg in google_apigee_envgroup.this : k => eg.hostnames }
 }
 
 output "external_lb_ip_address" {

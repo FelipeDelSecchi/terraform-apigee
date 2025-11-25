@@ -1,5 +1,5 @@
 variable "project_id" {
-  description = "(Obrigatório) ID do projeto GCP onde os recursos do Apigee serão criados para este ambiente."
+  description = "(Obrigatório) ID do projeto GCP onde os recursos do Apigee serão criados para este ambiente (org)."
   type        = string
 }
 
@@ -36,31 +36,20 @@ variable "apigee_authorized_network" {
   default     = null
 }
 
-variable "apigee_environment_name" {
-  description = "(Obrigatório) Nome do ambiente do Apigee (ex.: dev, hml, prod)."
-  type        = string
+variable "apigee_environments" {
+  description = "(Obrigatório) Mapa de ambientes do Apigee nesta Organização (ex.: dev, hom, prod)."
+  type = map(object({
+    display_name = optional(string)
+    description  = optional(string)
+  }))
 }
 
-variable "apigee_environment_display_name" {
-  description = "(Opcional) Nome de exibição do ambiente do Apigee."
-  type        = string
-  default     = null
-}
-
-variable "apigee_environment_description" {
-  description = "(Opcional) Descrição do ambiente do Apigee."
-  type        = string
-  default     = null
-}
-
-variable "apigee_envgroup_name" {
-  description = "(Obrigatório) Nome do grupo de ambientes (EnvGroup) do Apigee."
-  type        = string
-}
-
-variable "apigee_envgroup_hostnames" {
-  description = "(Obrigatório) Lista de hostnames que serão expostos pelo EnvGroup."
-  type        = list(string)
+variable "apigee_envgroups" {
+  description = "(Obrigatório) Mapa de EnvGroups do Apigee e seus ambientes associados."
+  type = map(object({
+    hostnames    = list(string)
+    environments = list(string)
+  }))
 }
 
 variable "labels" {
@@ -106,7 +95,7 @@ variable "psc_neg_subnetwork" {
 }
 
 variable "psc_target_service" {
-  description = "(Opcional) Service attachment de Private Service Connect exposto pelo Apigee."
+  description = "(Opcional) Service attachment de Private Service Connect exposto pelo Apigee. Se omitido, o módulo utilizará o service_attachment da instância."
   type        = string
   default     = null
 }
