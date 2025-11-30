@@ -22,4 +22,7 @@ module "apigee" {
   psc_neg_network    = var.psc_neg_network
   psc_neg_subnetwork = var.psc_neg_subnetwork
   psc_target_service = var.psc_target_service
+
+  apigee_ip_range = var.apigee_ip_range
+
 }

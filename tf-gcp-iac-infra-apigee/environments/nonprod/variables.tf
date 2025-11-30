@@ -36,6 +36,17 @@ variable "apigee_authorized_network" {
   default     = null
 }
 
+variable "apigee_ip_range" {
+  description = "CIDR /22 dedicado à org Apigee NONPROD (já alocado no PSA)."
+  type        = string
+}
+
+variable "apigee_support_ip_range" {
+  description = "CIDR /28 dedicado à org Apigee NONPROD (já alocado no PSA)."
+  type        = string
+}
+
+
 variable "apigee_environments" {
   description = "(Obrigatório) Mapa de ambientes do Apigee nesta Organização (ex.: dev, hom, prod)."
   type = map(object({

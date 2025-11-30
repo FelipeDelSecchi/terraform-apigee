@@ -37,6 +37,7 @@ resource "google_apigee_organization" "this" {
 resource "google_apigee_instance" "this" {
   name     = "apigee-instance"
   org_id   = google_apigee_organization.this.id
+  ip_range = var.apigee_ip_range
   location = var.apigee_runtime_location
 }
 
