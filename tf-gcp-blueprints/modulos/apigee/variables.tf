@@ -100,9 +100,3 @@ variable "apigee_ip_range" {
   type        = string
   default     = null
 }
-
-variable "apigee_support_ip_range" {
-  description = "CIDR /28 que a instância Apigee vai usar dentro do PSA (ex.: 10.200.0.0/22)."
-  type        = string
-  default     = null
-}
