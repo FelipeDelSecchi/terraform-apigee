@@ -1,6 +1,6 @@
 terraform {
   backend "gcs" {
-    bucket = "tfstate-apigee-prod"
+    bucket = "eva-gcs-prod-tfstate-apigee"
     prefix = "terraform/state"
   }
 }

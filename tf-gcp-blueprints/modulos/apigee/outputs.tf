@@ -8,27 +8,22 @@ output "apigee_instance_name" {
   value       = google_apigee_instance.this.name
 }
 
+output "apigee_instance_service_attachment" {
+  description = "Service attachment PSC da instância do Apigee (para consumo pelo LB)."
+  value       = google_apigee_instance.this.service_attachment
+}
+
 output "apigee_environment_names" {
   description = "Lista de nomes dos ambientes do Apigee criados."
-  value       = [for k, env in google_apigee_environment.this : env.name]
+  value       = [for _, env in google_apigee_environment.this : env.name]
 }
 
 output "apigee_envgroup_names" {
   description = "Lista de nomes dos EnvGroups do Apigee criados."
-  value       = [for k, eg in google_apigee_envgroup.this : eg.name]
+  value       = [for k, _ in google_apigee_envgroup.this : k]
 }
 
 output "apigee_envgroup_hostnames" {
   description = "Mapa de EnvGroups e seus hostnames configurados."
   value       = { for k, eg in google_apigee_envgroup.this : k => eg.hostnames }
-}
-
-output "external_lb_ip_address" {
-  description = "Endereço IP global do Load Balancer HTTPS externo (se criado)."
-  value       = try(google_compute_global_address.external[0].address, null)
-}
-
-output "external_lb_name" {
-  description = "Nome base do Load Balancer HTTPS externo."
-  value       = var.external_lb_name
 }
