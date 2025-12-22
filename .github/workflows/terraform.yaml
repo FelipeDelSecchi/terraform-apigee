@@ -7,31 +7,33 @@ on:
         description: "Componente alvo (apigee ou lb)"
         required: true
         type: choice
-        options:
-          - apigee
-          - lb
+        options: [apigee, lb]
       environment:
         description: "Org alvo (nonprod ou prod)"
         required: true
         type: choice
-        options:
-          - nonprod
-          - prod
+        options: [nonprod, prod]
       action:
         description: "Ação do Terraform"
         required: true
         type: choice
-        options:
-          - plan
-          - apply
+        options: [plan, apply]
 
 env:
   TF_APIGEE_BASE: tf-gcp-iac-infra-apigee/environments
   TF_LB_BASE: tf-gcp-iac-infra-apigee/environments-lb
 
+concurrency:
+  group: terraform-${{ inputs.component }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
+
+    # IMPORTANTe: isso habilita "GitHub Environments" com segredos diferentes por nonprod/prod
+    environment: ${{ inputs.environment }}
+
     permissions:
       contents: read
       id-token: write
@@ -40,25 +42,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Authenticate to Google Cloud (OIDC / Workload Identity Federation)
+        id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          # Se o project_id não for inferido automaticamente, defina via secret:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      # Opcional (mas útil p/ debug e para usar gcloud em qualquer passo)
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ steps.auth.outputs.project_id }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.13.0"
 
-      # TODO: ajustar para o seu WIF / SA
-      - name: Autenticar no GCP via Workload Identity
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-
       - name: Definir diretório de trabalho
-        id: setdir
         run: |
-          if [ "${{ github.event.inputs.component }}" = "apigee" ]; then
-            echo "TF_WORKING_DIR=${{ env.TF_APIGEE_BASE }}/${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          if [ "${{ inputs.component }}" = "apigee" ]; then
+            echo "TF_WORKING_DIR=${{ env.TF_APIGEE_BASE }}/${{ inputs.environment }}" >> $GITHUB_ENV
           else
-            echo "TF_WORKING_DIR=${{ env.TF_LB_BASE }}/${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+            echo "TF_WORKING_DIR=${{ env.TF_LB_BASE }}/${{ inputs.environment }}" >> $GITHUB_ENV
           fi
 
       - name: Terraform init
@@ -66,11 +77,11 @@ jobs:
         run: terraform init -input=false
 
       - name: Terraform plan
-        if: ${{ github.event.inputs.action == 'plan' }}
+        if: ${{ inputs.action == 'plan' }}
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform plan -input=false
+        run: terraform plan -input=false -out=tfplan
 
       - name: Terraform apply
-        if: ${{ github.event.inputs.action == 'apply' }}
+        if: ${{ inputs.action == 'apply' }}
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform apply -input=false -auto-approve
+        run: terraform apply -input=false -auto-approve tfplan
